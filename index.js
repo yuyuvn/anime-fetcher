@@ -1,6 +1,4 @@
 const PORT = process.env.PORT || 5321
-const SPREADSHEETS_ID = process.env.SPREADSHEETS_ID
-const BITTORRENT_URL = process.env.BITTORRENT_URL
 const express = require('express')
 const app = express()
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -8,25 +6,27 @@ const request = require('request-promise').defaults({jar: true})
 const HorribleSubsApi = require('horriblesubs-api')
 const {google} = require('googleapis')
 const fs = require('fs')
+const bodyParser = require('body-parser')
+const jsonParser = bodyParser.json()
 
 const horriblesubs = new HorribleSubsApi({})
 
-async function getToken() {
-  return request(`${BITTORRENT_URL}/gui/token.html`).then(data => Promise.resolve(data.replace(/<.*?>/g, '')))
+async function getToken(bittorrentUrl) {
+  return request(`${bittorrentUrl}/gui/token.html`).then(data => Promise.resolve(data.replace(/<.*?>/g, '')))
 }
 
-async function fetchTorrent(magnet, token) {
-  return request(`${BITTORRENT_URL}/gui/?token=${token}&action=add-url&s=${encodeURIComponent(magnet)}`)
+async function fetchTorrent(magnet, options) {
+  return request(`${options.bittorrentUrl}/gui/?token=${options.token}&action=add-url&s=${encodeURIComponent(magnet)}`)
 }
 
-async function getNewEpisode(url, current, token) {
+async function getNewEpisode(url, current, options) {
   const animeSluck = url.match(/[^\/]+$/)[0]
   const res = await horriblesubs.getAnimeData({link: `/shows/${animeSluck}`, slug: animeSluck, title: 'hogehoge'})
   const eps = res.episodes['1']
   Object.keys(eps).forEach(episode => {
     let marget = eps[episode]['1080p'] && eps[episode]['1080p'].url
     marget = marget || (eps[episode]['720p'] && eps[episode]['720p'].url)
-    if (marget && parseFloat(episode) > current) fetchTorrent(marget, token)
+    if (marget && parseFloat(episode) > current) fetchTorrent(marget, options)
   })
   return Promise.resolve(parseFloat(Object.keys(eps).unshift()))
 }
@@ -52,44 +52,47 @@ async function loadGoogleApi() {
   })
 }
 
-app.post('/fetch', async (req, res) => {
+app.post('/fetch/:spreadsheetsId', jsonParser, async (req, res) => {
   try {
     const oAuth2Client = await loadGoogleApi()
-    const token = await getToken()
+    const bittorrentUrl = req.body.bittorrent_url
+    if (!bittorrentUrl) throw "bittorrent_url is required"
+    const token = await getToken(bittorrentUrl)
     const sheets = google.sheets({version: 'v4', auth: oAuth2Client})
     sheets.spreadsheets.values.get({
-      spreadsheetId: SPREADSHEETS_ID,
+      spreadsheetId: req.params.spreadsheetsId,
       range: 'Ongoing!A2:B',
     }, (err, {data}) => {
-      if (err) return console.log('The API returned an error: ' + err)
+      if (err) throw 'The API returned an error: ${err}'
       const rows = data.values
       if (rows.length) {
         const getAllEpisode = []
         rows.forEach((row) => {
-          getAllEpisode.push(getNewEpisode(row[0], row[1], token).then((lastest) => {
+          getAllEpisode.push(getNewEpisode(row[0], row[1], {token, bittorrentUrl}).then((lastest) => {
             row[1] = lastest
           }))
         })
         Promise.all(getAllEpisode).then(() => {
           sheets.spreadsheets.values.update({
-            spreadsheetId: SPREADSHEETS_ID,
+            spreadsheetId: req.params.spreadsheetsId,
             range: 'Ongoing!A2:B',
             valueInputOption: 'RAW',
             resource: {
               values: rows
             }
           }, (err, response) => {
-            if (err) return console.log('The API returned an error: ' + err)
+            if (err) throw 'The API returned an error: ${err}'
             res.send("Done!")
           })
         })
       } else {
-        console.log('No data found.')
+        throw 'No data found.'
       }
     })
-  } catch {(e) => {
+  } catch(e) {
     console.error(e)
-  }}
+    res.send(e)
+  }
 })
 
 app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`))
