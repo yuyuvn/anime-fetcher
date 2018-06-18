@@ -1,4 +1,6 @@
 # anime-fetcher
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fyuyuvn%2Fanime-fetcher.svg?type=shield)](https://app.fossa.io/projects/git%2Bgithub.com%2Fyuyuvn%2Fanime-fetcher?ref=badge_shield)
+
 
 ## Install & deploy
 
@@ -27,3 +29,7 @@ Sheet name MUST be `Ongoing`. First column is url to anime, second column is cur
 | http://horriblesubs.info/shows/steins-gate-0	| 9 |
 | http://horriblesubs.info/shows/amanchu-advance	| 10 |
 | http://horriblesubs.info/shows/megalo-box	| 10 |
+
+
+## License
+[![FOSSA Status](https://app.fossa.io/api/projects/git%2Bgithub.com%2Fyuyuvn%2Fanime-fetcher.svg?type=large)](https://app.fossa.io/projects/git%2Bgithub.com%2Fyuyuvn%2Fanime-fetcher?ref=badge_large)
