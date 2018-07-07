@@ -12,7 +12,7 @@
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "googleapis": "27",
-    "horriblesubs-api": "^1.0.8",
+    "horriblesubs-api": "yuyuvn/horriblesubs-api",
     "request": "^2.87.0",
     "request-promise": "^4.2.2"
   }

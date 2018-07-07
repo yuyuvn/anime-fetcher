@@ -16,6 +16,7 @@ async function getToken(bittorrentUrl) {
 }
 
 async function fetchTorrent(magnet, options) {
+  console.log(`Fetching ${marget}`)
   return request(`${options.bittorrentUrl}/gui/?token=${options.token}&action=add-url&s=${encodeURIComponent(magnet)}`)
 }
 
