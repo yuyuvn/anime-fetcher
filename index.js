@@ -21,6 +21,7 @@ async function fetchTorrent(magnet, options) {
 }
 
 async function getNewEpisode(url, current, options) {
+  url = url.replace(/\/$/, '')
   const animeSluck = url.match(/[^\/]+$/)[0]
   const res = await horriblesubs.getAnimeData({link: `/shows/${animeSluck}`, slug: animeSluck, title: 'hogehoge'})
   const eps = res.episodes['1']
