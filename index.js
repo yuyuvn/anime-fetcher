@@ -65,7 +65,7 @@ app.post('/fetch/:spreadsheetsId', jsonParser, async (req, res) => {
       spreadsheetId: req.params.spreadsheetsId,
       range: 'Ongoing!A2:B',
     }, (err, {data}) => {
-      if (err) throw 'The API returned an error: ${err}'
+      if (err) throw `The API returned an error: ${err}`
       const rows = data.values
       if (rows.length) {
         const getAllEpisode = []
@@ -83,7 +83,7 @@ app.post('/fetch/:spreadsheetsId', jsonParser, async (req, res) => {
               values: rows
             }
           }, (err, response) => {
-            if (err) throw 'The API returned an error: ${err}'
+            if (err) throw `The API returned an error: ${err}`
             res.send("Done!")
           })
         })
