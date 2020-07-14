@@ -7,11 +7,18 @@ const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
 const TOKEN_PATH = 'credentials.json';
 
 // Load client secrets from a local file.
-fs.readFile('client_secret.json', (err, content) => {
-  if (err) return console.log('Error loading client secret file:', err);
-  // Authorize a client with credentials, then call the Google Sheets API.
-  authorize(JSON.parse(content), showAuth);
-});
+// fs.readFile('client_secret.json', (err, content) => {
+//   if (err) return console.log('Error loading client secret file:', err);
+//   authorize(JSON.parse(content), showAuth);
+// });
+
+async function getCredentials() {
+  const content = await fs.promises.readFile('client_secret.json');
+  const credentials = JSON.parse(content);
+  const {client_secret, client_id, redirect_uris} = credentials.installed;
+  return new google.auth.OAuth2(
+    client_id, client_secret, redirect_uris[0]);
+}
 
 /**
  * Create an OAuth2 client with the given credentials, and then execute the
@@ -52,7 +59,7 @@ function getNewToken(oAuth2Client, callback) {
     rl.close();
     oAuth2Client.getToken(code, (err, token) => {
       if (err) return callback(err);
-      oAuth2Client.setCredentials(token);
+      oAuth2Client.setCredentials(token.tokens);
       // Store the token to disk for later program executions
       fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
         if (err) console.error(err);
@@ -65,4 +72,24 @@ function getNewToken(oAuth2Client, callback) {
 
 function showAuth(auth) {
   // console.log(auth)
+}
+
+module.exports = {
+  askNewToken: async function() {
+    const oAuth2Client = await getCredentials();
+    const authUrl = oAuth2Client.generateAuthUrl({
+      access_type: 'offline',
+      scope: SCOPES,
+    });
+
+    return {
+      authUrl,
+      callback: async (code) => {
+        const token = (await oAuth2Client.getToken(code)).tokens;
+        oAuth2Client.setCredentials(token);
+        await fs.promises.writeFile(TOKEN_PATH, JSON.stringify(token));
+        return oAuth2Client;
+      }
+    }
+  }
 }

@@ -11,8 +11,9 @@
   "dependencies": {
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
-    "googleapis": "27",
+    "googleapis": "54",
     "horriblesubs-api": "yuyuvn/horriblesubs-api",
+    "node-fetch": "^2.6.0",
     "request": "^2.87.0",
     "request-promise": "^4.2.2"
   }
