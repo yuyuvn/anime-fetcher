@@ -7,9 +7,9 @@
 3. Set Email address and Product name shown to users
 4. Create OAuth client ID -> Other
 5. Download OAuth 2.0 client ID as json, rename it to client_secret.json then move to current folder
-6. `node getToken.js`
-8. `node index.js`
-9. Each time there are a post request to http://localhost:5321/fetch/:spreadsheets_id it will fetch new ep from horriblesubs
+6. `node index.js`
+7. Go to http://localhost:5321/login to create credentials
+8. Each time there are a post request to http://localhost:5321/fetch/:spreadsheets_id it will fetch new ep from horriblesubs
 
 Request content type must be json. Body must have bittorrent_url param which contain bittorent url.
 ```json
