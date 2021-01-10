@@ -12,6 +12,6 @@
     "body-parser": "^1.18.3",
     "express": "^4.16.3",
     "googleapis": "54",
-    "node-fetch": "^2.6.0"
+    "node-fetch": "^2.6.1"
   }
 }
