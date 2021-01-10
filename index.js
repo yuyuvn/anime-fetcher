@@ -3,24 +3,14 @@ const express = require('express')
 const app = express()
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 const fetch = require('node-fetch');
-const HorribleSubsApi = require('horriblesubs-api')
 const {google} = require('googleapis')
-const fs = require('fs')
+const fs = require('fs/promises')
 const bodyParser = require('body-parser')
 const jsonParser = bodyParser.json()
 const {askNewToken} = require('./getToken')
+const {parseCookies} = require('./utils.js')
 
-const horriblesubs = new HorribleSubsApi({});
 let authCallback = (code) => null;
-
-function parseCookies(response) {
-  const raw = response.headers.raw()['set-cookie'];
-  return raw.map((entry) => {
-    const parts = entry.split(';');
-    const cookiePart = parts[0];
-    return cookiePart;
-  }).join(';');
-}
 
 async function getToken(bittorrentUrl) {
   const data = await fetch(`${bittorrentUrl}/gui/token.html`);
@@ -41,21 +31,39 @@ async function fetchTorrent(magnet, options) {
 }
 
 async function getNewEpisode(url, current, options) {
-  url = url.replace(/\/$/, '');
-  const animeSluck = url.match(/[^\/]+$/)[0];
-  console.log(`Get anime ${animeSluck}`);
-  const res = await horriblesubs.getAnimeData({link: `/shows/${animeSluck}`, slug: animeSluck, title: 'hogehoge'});
-  const eps = res.episodes['1'];
-  await Promise.all(Object.keys(eps).map(episode => {
-    let marget = eps[episode]['1080p'] && eps[episode]['1080p'].url
-    marget = marget || (eps[episode]['720p'] && eps[episode]['720p'].url)
-    if (marget && parseFloat(episode) > current) return fetchTorrent(marget, options);
+  url = url.replace(/\?.*$/, '').replace(/\/$/, '');
+  console.log(`Get anime ${url}`);
+
+  const data = await fetch(`${url}/?sort=ep&dir=Ascending`);
+  const body = await data.text();
+  const eps = [...body.matchAll(/https:\/\/www\.tokyotosho\.info\/details\.php\?id=[0-9]+/g)];
+
+  console.log(`Found ${eps.length} episodes for ${url}`)
+
+  await Promise.all(eps.map((episodeData, episode) => {
+    if (episode <= current) return Promise.resolve();
+
+    const tokyotoshoUrl = episodeData[0]
+    return downloadAnime(tokyotoshoUrl, options);
   }))
-  return parseFloat(Object.keys(eps).unshift());
+
+  return eps.length;
 }
 
+async function downloadAnime(tokyotoshoUrl, options) {
+  const data = await fetch(tokyotoshoUrl);
+  const body = await data.text();
+  const magnetLink = body.match(/magnet:[^"]+/)[0];
+  if (!magnetLink) {
+    throw `Can't fetch from ${tokyotoshoUrl}`;
+  }
+
+  await fetchTorrent(magnetLink, options);
+}
+
+
 async function loadGoogleApi() {
-  const clientSecretContent = await fs.promises.readFile('client_secret.json');
+  const clientSecretContent = await fs.readFile('client_secret.json');
 
   credentials = JSON.parse(clientSecretContent)
   const {client_secret, client_id, redirect_uris} = credentials.installed
@@ -65,7 +73,7 @@ async function loadGoogleApi() {
     scope: SCOPES,
   });
 
-  const credentialsContent = await fs.promises.readFile('credentials.json');
+  const credentialsContent = await fs.readFile('credentials.json');
   const token = JSON.parse(credentialsContent);
   oAuth2Client.setCredentials(token)
   return oAuth2Client;
@@ -127,4 +135,4 @@ app.post('/login', async (req, res) => {
   else res.send("Nothing to do");
 })
 
-app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`))
+app.listen(PORT,"0.0.0.0", () => console.log(`Server is running on http://localhost:${PORT}`))

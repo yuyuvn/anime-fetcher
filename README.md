@@ -23,7 +23,4 @@ Sheet name MUST be `Ongoing`. First column is url to anime, second column is cur
 
 | Url | Episode |
 | --  | -- |
-| http://horriblesubs.info/shows/comic-girls	| 10 |
-| http://horriblesubs.info/shows/steins-gate-0	| 9 |
-| http://horriblesubs.info/shows/amanchu-advance	| 10 |
-| http://horriblesubs.info/shows/megalo-box	| 10 |
+| https://www.shanaproject.com/follows/series/948152/	| 0 |
