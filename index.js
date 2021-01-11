@@ -41,7 +41,7 @@ async function getNewEpisode(url, current, options) {
   console.log(`Found ${eps.length} episodes for ${url}`)
 
   await Promise.all(eps.map((episodeData, episode) => {
-    if (episode <= current) return Promise.resolve();
+    if (episode < current) return Promise.resolve();
 
     const tokyotoshoUrl = episodeData[0]
     return downloadAnime(tokyotoshoUrl, options);
