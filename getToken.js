@@ -1,6 +1,6 @@
-const fs = require('fs');
-const readline = require('readline');
-const {google} = require('googleapis');
+import fs from 'fs'
+import readline from 'readline'
+import {google} from  'googleapis'
 
 // If modifying these scopes, delete credentials.json.
 const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
@@ -74,22 +74,20 @@ function showAuth(auth) {
   // console.log(auth)
 }
 
-module.exports = {
-  askNewToken: async function() {
-    const oAuth2Client = await getCredentials();
-    const authUrl = oAuth2Client.generateAuthUrl({
-      access_type: 'offline',
-      scope: SCOPES,
-    });
+export default async function askNewToken() {
+  const oAuth2Client = await getCredentials();
+  const authUrl = oAuth2Client.generateAuthUrl({
+    access_type: 'offline',
+    scope: SCOPES,
+  });
 
-    return {
-      authUrl,
-      callback: async (code) => {
-        const token = (await oAuth2Client.getToken(code)).tokens;
-        oAuth2Client.setCredentials(token);
-        await fs.promises.writeFile(TOKEN_PATH, JSON.stringify(token));
-        return oAuth2Client;
-      }
+  return {
+    authUrl,
+    callback: async (code) => {
+      const token = (await oAuth2Client.getToken(code)).tokens;
+      oAuth2Client.setCredentials(token);
+      await fs.promises.writeFile(TOKEN_PATH, JSON.stringify(token));
+      return oAuth2Client;
     }
   }
 }
