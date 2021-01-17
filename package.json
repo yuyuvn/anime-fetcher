@@ -1,6 +1,7 @@
 {
   "name": "anime-fetcher",
   "version": "1.0.0",
+  "type": "module",
   "description": "Auto fetch anime from shanaproject",
   "main": "index.js",
   "scripts": {

@@ -1,15 +1,16 @@
 const PORT = process.env.PORT || 5321
-const express = require('express')
-const app = express()
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
-const fetch = require('node-fetch');
-const {google} = require('googleapis')
-const fs = require('fs/promises')
-const bodyParser = require('body-parser')
-const jsonParser = bodyParser.json()
-const {askNewToken} = require('./getToken')
-const {parseCookies} = require('./utils.js')
+import express from 'express'
+import fetch from 'node-fetch'
+import {google} from 'googleapis'
+import fs from 'fs/promises'
+import bodyParser from 'body-parser'
+import askNewToken from './getToken.js'
+import {parseCookies} from './utils.js'
+import animeSources from './animeSources/index.js'
 
+const app = express()
+const jsonParser = bodyParser.json()
+const SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
 let authCallback = (code) => null;
 
 async function getToken(bittorrentUrl) {
@@ -34,38 +35,38 @@ async function getNewEpisode(url, current, options) {
   url = url.replace(/\?.*$/, '').replace(/\/$/, '');
   console.log(`Get anime ${url}`);
 
-  const data = await fetch(`${url}/?sort=ep&dir=Ascending`);
-  const body = await data.text();
-  const eps = [...body.matchAll(/https:\/\/www\.tokyotosho\.info\/details\.php\?id=[0-9]+/g)];
+  let animeEps, animeResolver;
 
-  console.log(`Found ${eps.length} episodes for ${url}`)
-
-  await Promise.all(eps.map((episodeData, episode) => {
-    if (episode < current) return Promise.resolve();
-
-    const tokyotoshoUrl = episodeData[0]
-    return downloadAnime(tokyotoshoUrl, options);
-  }))
-
-  return eps.length;
-}
-
-async function downloadAnime(tokyotoshoUrl, options) {
-  const data = await fetch(tokyotoshoUrl);
-  const body = await data.text();
-  const magnetLink = body.match(/magnet:[^"]+/)[0];
-  if (!magnetLink) {
-    throw `Can't fetch from ${tokyotoshoUrl}`;
+  for (let index in animeSources) {
+    if (animeSources[index].match(url)) {
+      const {eps, resolver} = await animeSources[index].fetchAnimeList(url);
+      animeEps = eps;
+      animeResolver = resolver;
+      break;
+    }
   }
 
-  await fetchTorrent(magnetLink, options);
+  if (!animeEps) {
+    throw `This source is not supported! ${url}`
+  }
+
+  console.log(`Found ${animeEps.length} episodes for ${url}`)
+
+  await Promise.all(animeEps.map(async (episodeData, episode) => {
+    if (episode < current) return Promise.resolve();
+
+    const magnetLink = await animeResolver(episodeData);
+    return fetchTorrent(magnetLink, options);
+  }))
+
+  return animeEps.length;
 }
 
 
 async function loadGoogleApi() {
   const clientSecretContent = await fs.readFile('client_secret.json');
 
-  credentials = JSON.parse(clientSecretContent)
+  const credentials = JSON.parse(clientSecretContent)
   const {client_secret, client_id, redirect_uris} = credentials.installed
   const oAuth2Client = new google.auth.OAuth2(client_id, client_secret, redirect_uris[0]);
   oAuth2Client.generateAuthUrl({
