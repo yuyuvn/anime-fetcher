@@ -3,7 +3,7 @@ import fetch from 'node-fetch'
 export async function fetchAnimeList(url) {
   const data = await fetch(`${url}/?sort=ep&dir=Ascending`);
   const body = await data.text();
-  const eps = [...body.matchAll(/https:\/\/www\.tokyotosho\.info\/details\.php\?id=[0-9]+/g)].map(ep => ep[0]);
+  const eps = [...body.matchAll(/https?:\/\/(www\.)?tokyotosho\.info\/details\.php\?id=[0-9]+/g)].map(ep => ep[0]);
 
   return {eps, resolver};
 }
