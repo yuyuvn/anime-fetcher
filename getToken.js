@@ -1,10 +1,18 @@
 import fs from 'fs'
+import path from 'path'
 import readline from 'readline'
 import {google} from  'googleapis'
+import { TOKEN_PATH, CLIENT_SECRET_PATH, SCOPES } from './config.js'
 
-// If modifying these scopes, delete credentials.json.
-const SCOPES = ['https://www.googleapis.com/auth/spreadsheets'];
-const TOKEN_PATH = 'credentials.json';
+// Ensure data directory exists
+async function ensureDataDirectory() {
+  const dataDir = path.dirname(TOKEN_PATH);
+  try {
+    await fs.promises.access(dataDir);
+  } catch (err) {
+    await fs.promises.mkdir(dataDir, { recursive: true });
+  }
+}
 
 // Load client secrets from a local file.
 // fs.readFile('client_secret.json', (err, content) => {
@@ -12,12 +20,23 @@ const TOKEN_PATH = 'credentials.json';
 //   authorize(JSON.parse(content), showAuth);
 // });
 
-async function getCredentials() {
-  const content = await fs.promises.readFile('client_secret.json');
+async function getCredentials(customRedirectUri = null) {
+  const content = await fs.promises.readFile(CLIENT_SECRET_PATH);
   const credentials = JSON.parse(content);
-  const {client_secret, client_id, redirect_uris} = credentials.installed;
+  // Support both 'web' and 'installed' OAuth2 client types
+  const clientInfo = credentials.web || credentials.installed;
+  if (!clientInfo) {
+    throw new Error('Invalid client_secret.json: missing "web" or "installed" property');
+  }
+  const {client_secret, client_id, redirect_uris} = clientInfo;
+  // Use custom redirect URI if provided, otherwise use first configured URI
+  // This prevents OOB flow issues as per Google's migration guide
+  const redirectUri = customRedirectUri || redirect_uris[0];
+  if (!redirectUri) {
+    throw new Error('No redirect URI available. Check client_secret.json configuration.');
+  }
   return new google.auth.OAuth2(
-    client_id, client_secret, redirect_uris[0]);
+    client_id, client_secret, redirectUri);
 }
 
 /**
@@ -27,7 +46,9 @@ async function getCredentials() {
  * @param {function} callback The callback to call with the authorized client.
  */
 function authorize(credentials, callback) {
-  const {client_secret, client_id, redirect_uris} = credentials.installed;
+  // Support both 'web' and 'installed' OAuth2 client types
+  const clientInfo = credentials.web || credentials.installed;
+  const {client_secret, client_id, redirect_uris} = clientInfo;
   const oAuth2Client = new google.auth.OAuth2(
       client_id, client_secret, redirect_uris[0]);
 
@@ -57,14 +78,17 @@ function getNewToken(oAuth2Client, callback) {
   });
   rl.question('Enter the code from that page here: ', (code) => {
     rl.close();
-    oAuth2Client.getToken(code, (err, token) => {
+    oAuth2Client.getToken(code, async (err, token) => {
       if (err) return callback(err);
       oAuth2Client.setCredentials(token.tokens);
       // Store the token to disk for later program executions
-      fs.writeFile(TOKEN_PATH, JSON.stringify(token), (err) => {
-        if (err) console.error(err);
+      try {
+        await ensureDataDirectory();
+        await fs.promises.writeFile(TOKEN_PATH, JSON.stringify(token));
         console.log('Token stored to', TOKEN_PATH);
-      });
+      } catch (writeErr) {
+        console.error(writeErr);
+      }
       callback(oAuth2Client);
     });
   });
@@ -74,8 +98,12 @@ function showAuth(auth) {
   // console.log(auth)
 }
 
-export default async function askNewToken() {
-  const oAuth2Client = await getCredentials();
+export function getTokenPath() {
+  return TOKEN_PATH;
+}
+
+export default async function askNewToken(redirectUri = null) {
+  const oAuth2Client = await getCredentials(redirectUri);
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
@@ -86,6 +114,7 @@ export default async function askNewToken() {
     callback: async (code) => {
       const token = (await oAuth2Client.getToken(code)).tokens;
       oAuth2Client.setCredentials(token);
+      await ensureDataDirectory();
       await fs.promises.writeFile(TOKEN_PATH, JSON.stringify(token));
       return oAuth2Client;
     }

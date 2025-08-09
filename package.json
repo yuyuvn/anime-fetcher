@@ -5,11 +5,13 @@
   "description": "Auto fetch anime from shanaproject",
   "main": "index.js",
   "scripts": {
+    "start": "node index.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Clicia",
   "license": "MIT",
   "dependencies": {
+    "@ctrl/qbittorrent": "^9.6.0",
     "body-parser": "^1.19.2",
     "express": "^4.17.3",
     "googleapis": "97",
