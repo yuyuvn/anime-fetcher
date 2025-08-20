@@ -39,6 +39,7 @@ async function loginToBitTorrent(qbittorrentUrl, auth) {
     username: username,
     password: password,
   });
+  await client.login();
 
   return client;
 }
