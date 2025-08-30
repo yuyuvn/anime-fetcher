@@ -107,6 +107,7 @@ export default async function askNewToken(redirectUri = null) {
   const authUrl = oAuth2Client.generateAuthUrl({
     access_type: 'offline',
     scope: SCOPES,
+    prompt: "consent",
   });
 
   return {
