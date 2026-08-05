@@ -11,7 +11,7 @@
   "author": "Clicia",
   "license": "MIT",
   "dependencies": {
-    "@ctrl/qbittorrent": "^9.6.0",
+    "@ctrl/qbittorrent": "^9.14.0",
     "body-parser": "^1.20.4",
     "express": "^4.22.1",
     "googleapis": "97",
